@@ -1,9 +1,10 @@
 import classNames from 'classnames';
-import { Todo } from '../types/Todo';
 import { FilterBy } from '../types/FilterBy';
+import { Todo } from '../types/Todo';
 
 type Proto = {
   todos: Todo[];
+  activeTodosCount: number;
   statusFilterTodo: FilterBy;
   setStatusFilterTodo: (filter: FilterBy) => void;
   handleClearTodo: () => void;
@@ -11,18 +12,15 @@ type Proto = {
 
 export const TodoFooter: React.FC<Proto> = ({
   todos,
+  activeTodosCount,
   statusFilterTodo,
   setStatusFilterTodo,
   handleClearTodo,
 }) => {
-  if (todos.length === 0) {
-    return null;
-  }
-
   return (
     <footer className="todoapp__footer" data-cy="Footer">
       <span className="todo-count" data-cy="TodosCounter">
-        {todos.filter(todo => !todo.completed).length} items left
+        {activeTodosCount} items left
       </span>
 
       {/* Active link should have the 'selected' class */}
@@ -76,7 +74,7 @@ export const TodoFooter: React.FC<Proto> = ({
         className="todoapp__clear-completed"
         data-cy="ClearCompletedButton"
         onClick={handleClearTodo}
-        disabled={!todos.some(todo => todo.completed)}
+        disabled={todos.filter(todo => todo.completed).length === 0}
       >
         Clear completed
       </button>

@@ -8,11 +8,12 @@ export const getTodos = () => {
 };
 
 export const addTodo = (newTodo: Partial<Todo>) => {
-  return client.post<Todo[]>(`/todos`, newTodo);
+  return client.post<Todo>(`/todos`, newTodo);
 };
 
-export const updateTodo = (updatedTodo: Partial<Todo>) => {
-  return client.patch<Todo[]>(`/todos/${updatedTodo.id}`, updatedTodo);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const updateTodo = (id: number, completed: boolean) => {
+  return client.patch<Todo>(`/todos/${id}`, { completed });
 };
 
 export const deleteTodo = (todoId: number) => {

@@ -1,30 +1,47 @@
 import classNames from 'classnames';
+import React, { useEffect } from 'react';
 import { Errors } from '../types/Errors';
 
 type Props = {
-  warning: Errors | null;
-  setWarning: (warning: Errors | null) => void;
+  errorMessage: Errors;
+  clearError: () => void;
 };
 
-export const ErrorNotification: React.FC<Props> = ({ warning, setWarning }) => {
-  return (
-    <div
-      data-cy="ErrorNotification"
-      className={classNames(
-        'notification is-danger is-light has-text-weight-normal',
-        {
-          hidden: !warning,
-        },
-      )}
-    >
-      <button
-        data-cy="HideErrorButton"
-        type="button"
-        className="delete"
-        onClick={() => setWarning(null)}
-      />
-      {/* show only one message at a time */}
-      {warning}
-    </div>
-  );
-};
+export const ErrorNotification: React.FC<Props> = React.memo(
+  ({ errorMessage, clearError }) => {
+    useEffect(() => {
+      if (!errorMessage) {
+        return;
+      }
+
+      const timerId = setTimeout(() => {
+        clearError();
+      }, 3000);
+
+      return () => clearTimeout(timerId);
+    }, [errorMessage, clearError]);
+
+    return (
+      <div
+        data-cy="ErrorNotification"
+        className={classNames(
+          'notification is-danger is-light has-text-weight-normal',
+          {
+            hidden: !errorMessage,
+          },
+        )}
+      >
+        <button
+          data-cy="HideErrorButton"
+          type="button"
+          className="delete"
+          onClick={clearError}
+        />
+        {errorMessage}
+      </div>
+    );
+  },
+  (prevProps, nextProps) => prevProps.errorMessage === nextProps.errorMessage,
+);
+
+ErrorNotification.displayName = 'ErrorNotification';

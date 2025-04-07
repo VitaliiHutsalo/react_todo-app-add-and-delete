@@ -1,8 +1,11 @@
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable jsx-a11y/control-has-associated-label */
-import React, { useEffect, useState } from 'react';
-import { UserWarning } from './UserWarning';
-import { addTodo, deleteTodo, getTodos, USER_ID } from './api/todos';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  addTodo,
+  deleteTodo,
+  getTodos,
+  updateTodo,
+  USER_ID,
+} from './api/todos';
 import { Todo } from './types/Todo';
 import { FilterBy } from './types/FilterBy';
 import { TodoList } from './components/TodoList';
@@ -15,55 +18,47 @@ export const App: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [tempTodo, setTempTodo] = useState<Todo | null>(null);
   const [statusFilterTodo, setStatusFilterTodo] = useState(FilterBy.All);
-  const [warning, setWarning] = useState<Errors | null>(null);
+  const [errorMessage, setErrorMessage] = useState<Errors>(Errors.None);
   const [isLoading, setIsLoading] = useState(false);
+  const [deletedIds, setDeletedIds] = useState<number[]>([]); // ➕ стейт для видалення
+
+  const clearError = useCallback(() => {
+    setErrorMessage(Errors.None);
+  }, []);
 
   useEffect(() => {
     setIsLoading(true);
-    setWarning(null);
-
-    const timer = setTimeout(() => {
-      setWarning(null);
-    }, 3000);
-
     getTodos()
       .then(setTodos)
       .catch(() => {
-        setWarning(Errors.Load);
+        setErrorMessage(Errors.Load);
       })
       .finally(() => {
         setIsLoading(false);
       });
-
-    return () => {
-      clearTimeout(timer);
-    };
   }, []);
 
-  const todoFilter = todos.filter(todo => {
-    if (statusFilterTodo === FilterBy.All) {
-      return true;
-    }
+  const displayedTodos = [...todos];
 
-    if (statusFilterTodo === FilterBy.Active) {
-      return !todo.completed;
+  const todoFilter = displayedTodos.filter(todo => {
+    switch (statusFilterTodo) {
+      case FilterBy.All:
+        return true;
+      case FilterBy.Active:
+        return !todo.completed;
+      case FilterBy.Completed:
+        return todo.completed;
+      default:
+        return true;
     }
-
-    if (statusFilterTodo === FilterBy.Completed) {
-      return todo.completed;
-    }
-
-    return true;
   });
 
   const handleAddTodo = async (title: string) => {
     if (!title.trim()) {
-      setWarning(Errors.EmptyTitle);
+      setErrorMessage(Errors.EmptyTitle);
 
       return;
     }
-
-    setIsLoading(true);
 
     const newTodoToAdd: Todo = {
       userId: USER_ID,
@@ -73,65 +68,74 @@ export const App: React.FC = () => {
     };
 
     setTempTodo(newTodoToAdd);
+    setErrorMessage(Errors.None);
 
-    setWarning(null);
-
-    try {
-      const todo = await addTodo(newTodoToAdd);
-
-      setTodos(currentTodos => [...currentTodos, todo[0]]);
-      setTempTodo(null);
-    } catch (error) {
-      setWarning(Errors.Add);
-      setTempTodo(null);
-    } finally {
-      setIsLoading(false);
-    }
+    return addTodo(newTodoToAdd)
+      .then(newTodo => {
+        setTodos(currentTodos => [...currentTodos, newTodo]);
+      })
+      .catch(error => {
+        setErrorMessage(Errors.Add);
+        throw error;
+      })
+      .finally(() => {
+        setTempTodo(null);
+      });
   };
 
-  const handleUpdateTodo = (id: number) => {
+  const handleUpdateTodo = async (id: number) => {
     setTodos(prevTodos =>
       prevTodos.map(todo =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo,
       ),
     );
+
+    try {
+      await updateTodo(id, !todos.find(todo => todo.id === id)?.completed);
+    } catch {
+      setErrorMessage(Errors.Update);
+      setTodos(prevTodos =>
+        prevTodos.map(todo =>
+          todo.id === id ? { ...todo, completed: todo.completed } : todo,
+        ),
+      );
+    }
   };
 
-  const handleDeleteTodo = (todoId: number) => {
-    setTodos(currentTodos =>
-      currentTodos.map(todo =>
-        todo.id === todoId ? { ...todo, isDeleting: true } : todo,
-      ),
-    );
+  const handleDeleteTodo = async (todoId: number) => {
+    setDeletedIds(prevIds => [...prevIds, todoId]);
 
-    deleteTodo(todoId)
-      .then(() => {
-        setTodos(currentTodos =>
-          currentTodos.filter(todo => todo.id !== todoId),
-        );
-      })
-      .catch(() => {
-        setWarning(Errors.Delete);
-        setTodos(currentTodos =>
-          currentTodos.map(todo =>
-            todo.id === todoId ? { ...todo, isDeleting: false } : todo,
-          ),
-        );
-      });
+    try {
+      await deleteTodo(todoId);
+      setTodos(currentTodos => currentTodos.filter(todo => todo.id !== todoId));
+    } catch {
+      setErrorMessage(Errors.Delete);
+    } finally {
+      setDeletedIds(prevIds => prevIds.filter(id => id !== todoId));
+    }
   };
 
-  const handleCheckCompletedAllTodos = () => {
-    const checkCompletedAll = todos.every(todo => todo.completed);
+  const handleCheckCompletedAllTodos = async () => {
+    const allCompleted = todos.every(todo => todo.completed);
+    const todosToUpdate = todos.filter(todo => todo.completed === allCompleted);
 
-    setTodos(
-      todos.map(todo => ({
+    setTodos(prevTodos =>
+      prevTodos.map(todo => ({
         ...todo,
-        completed: !checkCompletedAll,
+        completed: !allCompleted,
       })),
     );
+
+    try {
+      await Promise.all(
+        todosToUpdate.map(todo => updateTodo(todo.id, !allCompleted)),
+      );
+    } catch {
+      setErrorMessage(Errors.Update);
+    }
   };
 
-  const handleClearTodo = () => {
+  const handleClearTodo = async () => {
     const completedTodos = todos.filter(todo => todo.completed);
 
     if (completedTodos.length === 0) {
@@ -139,63 +143,59 @@ export const App: React.FC = () => {
     }
 
     setIsLoading(true);
-    setWarning(null);
 
-    Promise.allSettled(completedTodos.map(todo => deleteTodo(todo.id)))
-      .then(results => {
-        const failedIds = completedTodos
-          .filter((_, i) => results[i].status === 'rejected')
-          .map(todo => todo.id);
+    const results = await Promise.allSettled(
+      completedTodos.map(todo => deleteTodo(todo.id)),
+    );
 
-        setTodos(currentTodos =>
-          currentTodos.filter(
-            todo => !todo.completed || failedIds.includes(todo.id),
-          ),
-        );
+    const failedIds = completedTodos
+      .filter((_, i) => results[i].status === 'rejected')
+      .map(todo => todo.id);
 
-        if (failedIds.length > 0) {
-          setWarning(Errors.Delete);
-        }
-      })
-      .finally(() => setIsLoading(false));
+    setTodos(prevTodos =>
+      prevTodos.filter(todo => !todo.completed || failedIds.includes(todo.id)),
+    );
+
+    if (failedIds.length > 0) {
+      setErrorMessage(Errors.Delete);
+    }
+
+    setIsLoading(false);
   };
 
-  if (!USER_ID) {
-    return <UserWarning />;
-  }
+  const todosCount = todos.filter(todo => !todo.completed).length;
 
   return (
     <div className="todoapp">
       <h1 className="todoapp__title">todos</h1>
 
       <div className="todoapp__content">
-        {isLoading ? (
-          <div>Loading...</div>
-        ) : (
-          <>
-            <TodoHeader
-              handleCheckCompletedAllTodos={handleCheckCompletedAllTodos}
-              todos={todos}
-              handleAddTodo={handleAddTodo}
-              isLoading={isLoading}
-            />
-            <TodoList
-              tempTodo={tempTodo}
-              todoFilter={todoFilter}
-              handleUpdateTodo={handleUpdateTodo}
-              handleDeleteTodo={handleDeleteTodo}
-            />
-            <TodoFooter
-              todos={todos}
-              statusFilterTodo={statusFilterTodo}
-              setStatusFilterTodo={setStatusFilterTodo}
-              handleClearTodo={handleClearTodo}
-            />
-          </>
+        <TodoHeader
+          todos={todos}
+          tempTodo={tempTodo}
+          handleCheckCompletedAllTodos={handleCheckCompletedAllTodos}
+          handleAddTodo={handleAddTodo}
+          isLoading={isLoading}
+        />
+        <TodoList
+          todoFilter={todoFilter}
+          tempTodo={tempTodo}
+          handleUpdateTodo={handleUpdateTodo}
+          handleDeleteTodo={handleDeleteTodo}
+          deletedIds={deletedIds}
+        />
+        {todos.length > 0 && (
+          <TodoFooter
+            todos={todos}
+            statusFilterTodo={statusFilterTodo}
+            setStatusFilterTodo={setStatusFilterTodo}
+            handleClearTodo={handleClearTodo}
+            activeTodosCount={todosCount}
+          />
         )}
       </div>
 
-      <ErrorNotification warning={warning} setWarning={setWarning} />
+      <ErrorNotification errorMessage={errorMessage} clearError={clearError} />
     </div>
   );
 };

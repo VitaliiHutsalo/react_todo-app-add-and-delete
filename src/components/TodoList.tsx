@@ -2,13 +2,15 @@ import { Todo } from '../types/Todo';
 import { TodoItem } from './TodoItem';
 
 type TodoListProps = {
+  deletedIds: number[];
   todoFilter: Todo[];
-  handleUpdateTodo: (id: number) => void;
+  handleUpdateTodo: (id: number, completed: boolean) => void;
   handleDeleteTodo: (id: number) => void;
   tempTodo: Todo | null;
 };
 
 export const TodoList: React.FC<TodoListProps> = ({
+  deletedIds,
   todoFilter,
   handleUpdateTodo,
   handleDeleteTodo,
@@ -22,17 +24,19 @@ export const TodoList: React.FC<TodoListProps> = ({
           todo={todo}
           handleUpdateTodo={handleUpdateTodo}
           handleDeleteTodo={handleDeleteTodo}
-          isLoading={false}
+          isLoading={deletedIds.includes(todo.id)}
         />
       ))}
       {tempTodo && (
-        <TodoItem
-          key={tempTodo.id}
-          todo={tempTodo}
-          handleUpdateTodo={handleUpdateTodo}
-          handleDeleteTodo={() => {}}
-          isLoading={true}
-        />
+        <>
+          <TodoItem
+            key="tempTodo"
+            todo={tempTodo}
+            handleUpdateTodo={() => {}}
+            handleDeleteTodo={() => {}}
+            isLoading={true}
+          />
+        </>
       )}
     </section>
   );
