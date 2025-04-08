@@ -20,7 +20,7 @@ export const App: React.FC = () => {
   const [statusFilterTodo, setStatusFilterTodo] = useState(FilterBy.All);
   const [errorMessage, setErrorMessage] = useState<Errors>(Errors.None);
   const [isLoading, setIsLoading] = useState(false);
-  const [deletedIds, setDeletedIds] = useState<number[]>([]); // ➕ стейт для видалення
+  const [deletedIds, setDeletedIds] = useState<number[]>([]);
 
   const clearError = useCallback(() => {
     setErrorMessage(Errors.None);
@@ -83,7 +83,7 @@ export const App: React.FC = () => {
       });
   };
 
-  const handleUpdateTodo = async (id: number) => {
+  const handleToggle = async (id: number) => {
     setTodos(prevTodos =>
       prevTodos.map(todo =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo,
@@ -115,7 +115,7 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleCheckCompletedAllTodos = async () => {
+  const handleAllToggle = async () => {
     const allCompleted = todos.every(todo => todo.completed);
     const todosToUpdate = todos.filter(todo => todo.completed === allCompleted);
 
@@ -173,14 +173,14 @@ export const App: React.FC = () => {
         <TodoHeader
           todos={todos}
           tempTodo={tempTodo}
-          handleCheckCompletedAllTodos={handleCheckCompletedAllTodos}
+          handleAllToggle={handleAllToggle}
           handleAddTodo={handleAddTodo}
           isLoading={isLoading}
         />
         <TodoList
           todoFilter={todoFilter}
           tempTodo={tempTodo}
-          handleUpdateTodo={handleUpdateTodo}
+          handleToggle={handleToggle}
           handleDeleteTodo={handleDeleteTodo}
           deletedIds={deletedIds}
         />

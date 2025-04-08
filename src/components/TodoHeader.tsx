@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 type Props = {
   tempTodo: Todo | null;
   todos: Todo[];
-  handleCheckCompletedAllTodos: () => void;
+  handleAllToggle: () => void;
   handleAddTodo: (title: string) => Promise<void>;
   isLoading: boolean;
 };
@@ -13,7 +13,7 @@ type Props = {
 export const TodoHeader: React.FC<Props> = ({
   tempTodo,
   todos,
-  handleCheckCompletedAllTodos,
+  handleAllToggle,
   handleAddTodo,
   isLoading,
 }) => {
@@ -51,7 +51,7 @@ export const TodoHeader: React.FC<Props> = ({
           active: todos.every(todo => todo.completed),
         })}
         data-cy="ToggleAllButton"
-        onClick={handleCheckCompletedAllTodos}
+        onClick={handleAllToggle}
       />
 
       <form onSubmit={handleSubmit}>

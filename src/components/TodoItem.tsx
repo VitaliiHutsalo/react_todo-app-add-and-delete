@@ -5,14 +5,14 @@ import { Loader } from './Loader';
 
 type TodoItemProps = {
   todo: Todo;
-  handleUpdateTodo: (id: number, completed: boolean) => void;
+  handleToggle: (id: number, completed: boolean) => void;
   handleDeleteTodo: (id: number) => void;
   isLoading: boolean;
 };
 
 export const TodoItem: React.FC<TodoItemProps> = ({
   todo,
-  handleUpdateTodo,
+  handleToggle,
   handleDeleteTodo,
   isLoading,
 }) => {
@@ -34,7 +34,7 @@ export const TodoItem: React.FC<TodoItemProps> = ({
           className="todo__status"
           checked={completed}
           onChange={() => {
-            handleUpdateTodo(id, completed);
+            handleToggle(id, completed);
           }}
         />
       </label>

@@ -4,7 +4,7 @@ import { TodoItem } from './TodoItem';
 type TodoListProps = {
   deletedIds: number[];
   todoFilter: Todo[];
-  handleUpdateTodo: (id: number, completed: boolean) => void;
+  handleToggle: (id: number, completed: boolean) => void;
   handleDeleteTodo: (id: number) => void;
   tempTodo: Todo | null;
 };
@@ -12,7 +12,7 @@ type TodoListProps = {
 export const TodoList: React.FC<TodoListProps> = ({
   deletedIds,
   todoFilter,
-  handleUpdateTodo,
+  handleToggle,
   handleDeleteTodo,
   tempTodo,
 }) => {
@@ -22,7 +22,7 @@ export const TodoList: React.FC<TodoListProps> = ({
         <TodoItem
           key={todo.id}
           todo={todo}
-          handleUpdateTodo={handleUpdateTodo}
+          handleToggle={handleToggle}
           handleDeleteTodo={handleDeleteTodo}
           isLoading={deletedIds.includes(todo.id)}
         />
@@ -32,7 +32,7 @@ export const TodoList: React.FC<TodoListProps> = ({
           <TodoItem
             key="tempTodo"
             todo={tempTodo}
-            handleUpdateTodo={() => {}}
+            handleToggle={() => {}}
             handleDeleteTodo={() => {}}
             isLoading={true}
           />
